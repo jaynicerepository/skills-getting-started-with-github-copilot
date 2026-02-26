@@ -40,6 +40,59 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching activities:", error);
     }
   }
+        // Create participants list HTML
+        let participantsHTML = "";
+        if (details.participants && details.participants.length > 0) {
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${details.participants.map(email => `
+                  <li class="participant-item" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(email)}">
+                    <span class="participant-email">${email}</span>
+                    <button class="delete-participant" title="Remove participant" aria-label="Remove participant">✖</button>
+                  </li>
+                `).join("")}
+              </ul>
+            </div>
+          `;
+        } else {
+          participantsHTML = `
+            <div class="participants-section empty">
+              <em>No participants yet</em>
+            </div>
+          `;
+        }
+
+        activityCard.innerHTML += participantsHTML;
+
+        // Add event listeners for delete buttons after rendering
+        setTimeout(() => {
+          const deleteButtons = activityCard.querySelectorAll(".delete-participant");
+          deleteButtons.forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const li = btn.closest(".participant-item");
+              const activityName = decodeURIComponent(li.getAttribute("data-activity"));
+              const email = decodeURIComponent(li.getAttribute("data-email"));
+              if (!confirm(`Remove ${email} from ${activityName}?`)) return;
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(activityName)}/signup?email=${encodeURIComponent(email)}`, {
+                  method: "DELETE"
+                });
+                if (response.ok) {
+                  fetchActivities();
+                } else {
+                  const result = await response.json();
+                  alert(result.detail || "Failed to remove participant.");
+                }
+              } catch (error) {
+                alert("Failed to remove participant. Please try again.");
+              }
+            });
+          });
+        }, 0);
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
